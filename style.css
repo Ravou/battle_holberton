@@ -1,0 +1,22 @@
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+h2 {
+  margin-top: 30px;
+}
+.groups-list, .taskDisplay, .timer, .validation, .checker, .recap {
+  margin-top: 10px;
+}
+button {
+  padding: 6px 12px;
+  cursor: pointer;
+  margin: 5px;
+}
+.task-line {
+  margin-bottom: 10px;
+  white-space: pre-line;
+}
+textarea {
+  width: 100%;
+}
