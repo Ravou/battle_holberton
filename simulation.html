@@ -64,21 +64,58 @@ let codeurIndex = {A:0, B:0};
 let taskValidation = {A:false, B:false};
 let taskWinners = []; // stocke qui a gagné chaque tâche
 
-// ---------------- Simulation de validation ----------------
 const taskCheckers = [
-    { // Task 0
-        A: ["0-whatsmyname_0", "anothername", "AreYouSure?", "Return SUCCESS", "Betty coding style"],
-        B: ["0-whatsmyname_0", "anothername", "AreYouSure?", "Return SUCCESS", "Betty coding style"]
-    },
-    { // Task 1
-        A: ["Correct output - case: ./1-args", "Return SUCCESS", "Betty coding style"],
-        B: ["Correct output - case: ./1-args", "Return SUCCESS", "Betty coding style"]
-    },
-    { // Task 2
-        A: ["Correct output - case: ./task", "Return SUCCESS", "Betty coding style"],
-        B: ["Correct output - case: ./task", "Return SUCCESS", "Betty coding style"]
-    }
+    // Task 0
+    (code) => ({
+        "Correct output - case: ./0-whatsmyname_0": code.includes("printf") && code.includes("argv[0]"),
+        "Correct output - case: ./anothername": code.includes("printf") && code.includes("argv[0]"),
+        "Correct output - case: ./AreYouSure?": code.includes("printf") && code.includes("argv[0]"),
+        "Return SUCCESS": code.includes("return 0"),
+        "Betty coding style": !code.includes("\t")
+    }),
+    // Task 1
+    (code) => ({
+        "Correct output - case: ./1-args": code.includes("argc - 1") || code.includes("printf"),
+        "Return SUCCESS": code.includes("return 0"),
+        "Betty coding style": !code.includes("\t")
+    }),
+    // Task 2
+    (code) => ({
+        "Correct output - case: ./task": code.includes("for") && code.includes("printf"),
+        "Return SUCCESS": code.includes("return 0"),
+        "Betty coding style": !code.includes("\t")
+    })
 ];
+
+// --- Nouvelle fonction validateCode avec simulation ---
+function validateCode(team){
+    const code = document.getElementById(`codeInput${team}`).value;
+    const checker = taskCheckers[currentTaskIndex];
+    const results = checker(code);
+
+    // Génération du texte de validation simulé
+    let output = `Résultats pour Groupe ${team} :\n`;
+    let points = 0;
+    for (const key in results){
+        output += `${key} : ${results[key] ? "✔️" : "❌"}\n`;
+        if (results[key]) points += (key.includes("AreYouSure?") ? 2 : 1);
+    }
+    output += `Points : ${points}\n`;
+    document.getElementById('validationResult').innerText = output;
+
+    taskValidation[team] = true;
+
+    // Vérification si les deux groupes ont validé
+    if(taskValidation.A && taskValidation.B){
+        const winner = Math.random() > 0.5 ? 'A' : 'B';
+        taskWinners[currentTaskIndex] = winner;
+        document.getElementById('validationResult').innerText += `\nTâche ${currentTaskIndex+1} terminée ! Gagnant : Groupe ${winner}`;
+        currentTaskIndex++;
+        startTask();
+    } else {
+        document.getElementById('validationResult').innerText += `\nGroupe ${team} a validé, attendre l'autre équipe...`;
+    }
+}
 
 // Affichage étudiants
 function displayStudents() {
