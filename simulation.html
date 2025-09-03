@@ -64,6 +64,22 @@ let codeurIndex = {A:0, B:0};
 let taskValidation = {A:false, B:false};
 let taskWinners = []; // stocke qui a gagné chaque tâche
 
+// ---------------- Simulation de validation ----------------
+const taskCheckers = [
+    { // Task 0
+        A: ["0-whatsmyname_0", "anothername", "AreYouSure?", "Return SUCCESS", "Betty coding style"],
+        B: ["0-whatsmyname_0", "anothername", "AreYouSure?", "Return SUCCESS", "Betty coding style"]
+    },
+    { // Task 1
+        A: ["Correct output - case: ./1-args", "Return SUCCESS", "Betty coding style"],
+        B: ["Correct output - case: ./1-args", "Return SUCCESS", "Betty coding style"]
+    },
+    { // Task 2
+        A: ["Correct output - case: ./task", "Return SUCCESS", "Betty coding style"],
+        B: ["Correct output - case: ./task", "Return SUCCESS", "Betty coding style"]
+    }
+];
+
 // Affichage étudiants
 function displayStudents() {
     document.getElementById('studentList').innerHTML = students.map(s=>`<div>${s}</div>`).join('');
