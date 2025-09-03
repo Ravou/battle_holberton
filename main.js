@@ -3,13 +3,34 @@
 // -----------------------------
 let groups = [];
 let currentTaskIndex = 0;
-let timerDuration = 5 * 60; // 5 minutes
+let timerDuration = 5 * 60;
 let timerInterval;
 let codeurIndex = { A: 0, B: 0 };
-let taskValidation = { A: false, B: false }; // points du tour courant ou false si non soumis
+let taskValidation = { A: false, B: false };
 let taskWinners = [];
 let groupTotals = { A: 0, B: 0 };
-let taskResults = []; // [{ A:{points,passed,breakdown,checksCount}, B:{...}, winner:"A|B|Égalité" }]
+let taskResults = [];
+
+// Réponses fixes pour B, dans l'ordre des tâches
+const fixedBResponses = [
+`#include <stdio.h>
+int main() {
+    printf("Hello\\n");
+    return 0;
+}`,
+`#include <stdio.h>
+int main(int argc, char *argv[]) {
+    printf("%d\\n", argc);
+    return 0;
+}`,
+`#include <stdio.h>
+int main(int argc, char *argv[]) {
+    for (int i = 0; i < argc; i++) {
+        printf("%s\\n", argv[i]);
+    }
+    return 0;
+}`
+];
 
 // -----------------------------
 // Affichage étudiants
@@ -34,14 +55,11 @@ function formGroups() {
     groups.push([p1, p2]);
   }
   if (copy.length === 1) {
-    if (groups.length > 0) {
-      groups[groups.length - 1].push(copy[0]);
-    } else {
-      groups.push([copy[0]]);
-    }
+    if (groups.length > 0) groups[groups.length - 1].push(copy[0]);
+    else groups.push([copy[0]]);
   }
   document.getElementById('groupsList').innerHTML =
-    groups.map((g, i) => `<div>Groupe ${i + 1}: ${g.join(' & ')}</div>`).join('');
+    groups.map((g,i) => `<div>Groupe ${i+1}: ${g.join(' & ')}</div>`).join('');
   startTask();
 }
 
@@ -49,22 +67,21 @@ function formGroups() {
 // Démarrer tâche courante
 // -----------------------------
 function startTask() {
-  if (currentTaskIndex >= tasks.length) {
+  if(currentTaskIndex >= tasks.length) {
     document.getElementById('currentTask').innerText = "Toutes les tâches terminées !";
     document.getElementById('timerDisplay').innerText = "00:00";
     displayRecap();
     return;
   }
 
-  taskValidation = { A: false, B: false };
+  taskValidation = {A:false, B:false};
   document.getElementById('validationResult').innerText = "";
   document.getElementById('codeInputA').value = "";
-  // On cache le textarea de B, il est simulé
-  document.getElementById('codeInputB').style.display = 'none';
-  document.querySelector('button[onclick="validateCode(\'B\')"]').style.display = 'none';
+  document.getElementById('codeInputB').value = ""; // le textarea B reste visible
 
   document.getElementById('currentTask').innerText = tasks[currentTaskIndex];
 
+  // Rotation codeur
   const codeurA = groups[0][codeurIndex.A % groups[0].length];
   const codeurB = groups[1][codeurIndex.B % groups[1].length];
   document.getElementById('codeurA').innerText = codeurA;
@@ -72,15 +89,14 @@ function startTask() {
   codeurIndex.A++;
   codeurIndex.B++;
 
-  // Timer
   let timeLeft = timerDuration;
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     let m = Math.floor(timeLeft / 60);
     let s = timeLeft % 60;
     document.getElementById('timerDisplay').innerText =
-      `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-    if (timeLeft <= 0) {
+      `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    if(timeLeft <= 0){
       clearInterval(timerInterval);
       checkBothValidated();
     }
@@ -89,99 +105,99 @@ function startTask() {
 }
 
 // -----------------------------
-// Simulation code B
-// -----------------------------
-function simulateCodeB() {
-  // Prend le code de référence du checker
-  const codeRef = taskCheckerCode[currentTaskIndex];
-  // On simule erreurs aléatoires : 70% correct, 30% modifié
-  const rand = Math.random();
-  if (rand < 0.7) {
-    return codeRef; // correct
-  } else {
-    // Faux : on modifie légèrement
-    return codeRef.replace(/printf/g, "print"); // provoque un fail
-  }
-}
-
-// -----------------------------
-// Évaluer un code avec le checker
+// Évaluer code
 // -----------------------------
 function evaluateCode(code) {
   const checker = taskCheckers[currentTaskIndex];
   const breakdown = checker(code);
   const checks = Object.keys(breakdown);
-  const points = checks.reduce((acc, k) => acc + (breakdown[k] ? 1 : 0), 0);
+  const points = checks.reduce((acc,k)=> acc + (breakdown[k] ? 1 : 0), 0);
   const passed = points === checks.length;
-  return { points, passed, breakdown, checksCount: checks.length };
+  return {points, passed, breakdown, checksCount: checks.length};
 }
 
 // -----------------------------
-// Validation du code
+// Validation du code d'un groupe
 // -----------------------------
 function validateCode(team) {
-  let code;
-  if (team === "B") {
-    code = simulateCodeB();
-  } else {
-    code = document.getElementById(`codeInput${team}`).value || "";
-  }
-  const evalRes = evaluateCode(code);
+    let code;
+    if (team === "B") {
+        // Réponse fixe pour le groupe B
+        code = fixedBResponses[currentTaskIndex];
+        document.getElementById('codeInputB').value = code;
+    } else {
+        code = document.getElementById(`codeInput${team}`).value || "";
+    }
 
-  if (!taskResults[currentTaskIndex]) {
-    taskResults[currentTaskIndex] = { A: null, B: null, winner: null };
-  }
-  taskResults[currentTaskIndex][team] = evalRes;
+    const evalRes = evaluateCode(code);
 
-  let output = `<strong>Résultats Groupe ${team} :</strong><br>`;
-  for (const key in evalRes.breakdown) {
-    output += `${key} : ${evalRes.breakdown[key] ? "✅" : "❌"}<br>`;
-  }
-  output += `Points : ${evalRes.points}/${evalRes.checksCount}<br><br>`;
-  document.getElementById('validationResult').innerHTML += output;
+    // Sauvegarde des résultats
+    if (!taskResults[currentTaskIndex]) taskResults[currentTaskIndex] = { A: null, B: null, winner: null };
+    taskResults[currentTaskIndex][team] = evalRes;
 
-  taskValidation[team] = evalRes.points;
+    // Affichage détaillé des résultats
+    let output = `<strong>Résultats Groupe ${team} :</strong><br>`;
+    for (const key in evalRes.breakdown) {
+        output += `${key} : ${evalRes.breakdown[key] ? "✅" : "❌"}<br>`;
+    }
+    output += `Points : ${evalRes.points}/${evalRes.checksCount}<br><br>`;
+    document.getElementById('validationResult').innerHTML += output;
 
-  if (taskValidation.A !== false && taskValidation.B !== false) {
-    finalizeCurrentTask();
-  } else {
-    document.getElementById('validationResult').innerHTML +=
-      `👉 Groupe ${team} a validé, attendre l'autre équipe...<br><br>`;
-  }
+    // Enregistrement des points
+    taskValidation[team] = evalRes.points;
+
+    // Validation automatique de B après A si ce n’est pas déjà fait
+    if (team === "A" && !taskValidation.B) {
+        validateCode("B");
+        return; // Ne pas continuer pour éviter double finalize
+    }
+
+    // Si les deux groupes ont validé → finalisation
+    if (taskValidation.A !== false && taskValidation.B !== false) {
+        finalizeCurrentTask();
+    } else {
+        document.getElementById('validationResult').innerHTML +=
+            `👉 Groupe ${team} a validé, attendre l'autre équipe...<br><br>`;
+    }
 }
-
 // -----------------------------
-// Finaliser tâche
+// Finalisation de la tâche courante
 // -----------------------------
 function finalizeCurrentTask() {
-  clearInterval(timerInterval);
-  let winner;
-  if (taskValidation.A > taskValidation.B) winner = "A";
-  else if (taskValidation.B > taskValidation.A) winner = "B";
-  else winner = "Égalité";
+    clearInterval(timerInterval);
 
-  groupTotals.A += taskValidation.A;
-  groupTotals.B += taskValidation.B;
+    // Détermination du gagnant
+    let winner;
+    if (taskValidation.A > taskValidation.B) winner = "A";
+    else if (taskValidation.B > taskValidation.A) winner = "B";
+    else winner = "Égalité";
 
-  taskWinners[currentTaskIndex] = winner;
-  taskResults[currentTaskIndex].winner = winner;
+    // Mise à jour des totaux
+    groupTotals.A += taskValidation.A;
+    groupTotals.B += taskValidation.B;
 
-  document.getElementById('validationResult').innerHTML +=
-    `🏆 Tâche ${currentTaskIndex + 1} terminée ! Gagnant : Groupe ${winner}<br>`;
+    // Enregistrement du gagnant pour cette tâche
+    taskWinners[currentTaskIndex] = winner;
+    taskResults[currentTaskIndex].winner = winner;
 
-  setTimeout(() => {
-    currentTaskIndex++;
-    startTask();
-  }, 2000);
+    // Affichage avant incrément de l'index
+    document.getElementById('validationResult').innerHTML +=
+        `🏆 Tâche ${currentTaskIndex + 1} terminée ! Gagnant : Groupe ${winner}<br>`;
+
+    // Passer à la tâche suivante après un petit délai
+    setTimeout(() => {
+        currentTaskIndex++;
+        startTask();
+    }, 2000);
 }
 
 // -----------------------------
 // Timer expiré → validation forcée
 // -----------------------------
 function checkBothValidated() {
-  if (taskValidation.A === false) validateCode('A');
-  if (taskValidation.B === false) validateCode('B');
-  if (taskValidation.A !== false && taskValidation.B !== false) finalizeCurrentTask();
+  if(taskValidation.A === false) validateCode("A");
+  if(taskValidation.B === false) validateCode("B");
+  if(taskValidation.A !== false && taskValidation.B !== false) finalizeCurrentTask();
 }
 
 // -----------------------------
@@ -198,8 +214,8 @@ function displayRecap() {
     </div>
   `;
 
-  taskResults.forEach((res, i) => {
-    if (!res) return;
+  taskResults.forEach((res,i)=>{
+    if(!res) return;
     const a = res.A, b = res.B;
     const title = tasks[i].split("\n")[0];
     const line = document.createElement('div');
@@ -213,24 +229,6 @@ function displayRecap() {
     recapDiv.appendChild(line);
   });
 
-  const aToReview = [], bToReview = [];
-  taskResults.forEach((res, i) => {
-    if (res?.A && !res.A.passed) aToReview.push(i);
-    if (res?.B && !res.B.passed) bToReview.push(i);
-  });
-
-  recapDiv.innerHTML += `
-    <div style="margin-top:10px;">
-      <strong>À revoir</strong><br>
-      Groupe A : ${aToReview.length ? aToReview.map(i => `T${i}`).join(", ") : "— ✅ rien à revoir"}<br>
-      Groupe B : ${bToReview.length ? bToReview.map(i => `T${i}`).join(", ") : "— ✅ rien à revoir"}
-    </div>
-    <div style="margin-top:10px;padding:10px;border:1px dashed #aaa;border-radius:6px;">
-      <em>Consigne :</em> prenez 3–5 minutes en binôme pour vous concerter sur les tâches non réussies.
-      Pour chaque tâche à revoir, répondez à voix haute :
-      (1) qu’est-ce qui était attendu ? (2) où votre code échoue ? (3) quelle correction minimale faut-il apporter ?
-    </div>
-  `;
   document.getElementById('finalBtn').style.display = 'inline-block';
 }
 

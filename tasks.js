@@ -42,7 +42,7 @@ const taskCheckers = [
         "Correct output - case: ./0-whatsmyname_0": code.includes("printf") && code.includes("argv[0]"),
         "Correct output - case: ./anothername": code.includes("printf") && code.includes("argv[0]"),
         "Correct output - case: ./AreYouSure?": code.includes("printf") && code.includes("argv[0]"),
-        "Return SUCCESS": code.includes("return 0"),
+        "Return SUCCESS": code.includes("return (0)"),
         "Betty coding style": !code.includes("\t")
     }),
     // Task 1
