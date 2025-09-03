@@ -1,4 +1,4 @@
-import { students } from './students.js';
+import { students } from './tasks.js';
 
 export let groups = [];
 
@@ -22,12 +22,13 @@ export function formGroups() {
     }
     
     const groupsList = document.getElementById('groupsList');
-    groupsList.innerHTML = groups.map((g, i) => 
-        `<div class="group-card">
-            <h3>Groupe ${i+1}</h3>
-            <p>${g.join(' & ')}</p>
-        </div>`
-    ).join('');
+    // Afficher seulement le Groupe A
+    groupsList.innerHTML = `
+        <div class="group-card">
+            <h3>Groupe A</h3>
+            <p>${groups[0].join(' & ')}</p>
+        </div>
+    `;
     
     return groups;
 }
