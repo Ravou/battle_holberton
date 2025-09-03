@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Simulation Moock - Groupes et Confrontations</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  h2 { margin-top: 30px; }
+  .group, .task, .winner { margin-bottom: 20px; }
+  .groups-list, .tree { margin-top: 10px; }
+  .pair { margin-bottom: 10px; }
+  button { cursor: pointer; padding: 6px 12px; margin-top: 10px; }
+  .tree-node { border: 1px solid #333; padding: 8px; margin: 5px; display: inline-block; min-width: 140px; text-align: center; background: #eee; border-radius: 5px; white-space: pre-line; }
+  .tree-row { margin-top: 15px; }
+</style>
+</head>
+<body>
+
+<h1>Simulation Moock : Groupes & Confrontations</h1>
+
+<h2>1. Liste des étudiants</h2>
+<div id="studentList"></div>
+
+<h2>2. Formation automatique de groupes de 2</h2>
+<button onclick="formGroups()">Former les groupes</button>
+<div class="groups-list" id="groupsList"></div>
+
+<h2>5. Confrontations</h2>
+<div id="confrontationsList"></div>
+
+<h2>3. Tirage aléatoire d’une tâche et validation</h2>
+<button onclick="drawTask()">Tirer une tâche pour le groupe courant</button>
+<div class="task" id="task"></div>
+<button onclick="validateCode()" style="display:none;" id="validateBtn">Valider le code</button>
+<div class="validationResult" id="validationResult"></div>
+
+<h2>4. Arbre de confrontation simplifié</h2>
+<div class="tree" id="treeRoot"></div>
+
+<script>
+// Liste fictive d'étudiants
+const students = [
+  "Alice", "Bob", "Charlie", "Diana",
+  "Ethan", "Fiona", "George", "Hannah"
+];
+
+// Liste des tâches spécifiques au projet sur argc et argv en C
+const tasks = [
+  "0. Write a program that prints its name, followed by a new line.\nThe program name may change without recompilation.",
+  "1. Write a program that prints the number of arguments passed into it.",
+  "2. Write a program that prints all arguments it receives, one per line.",
+  "3. Write a program that multiplies two numbers passed as arguments and prints the result.",
+  "4. Write a program that adds positive numbers passed as arguments and handles errors for non-digit symbols."
+];
+
+let groups = [];
+let currentTaskIndex = -1;
+let currentGroup = 0;
+
+// Afficher la liste des étudiants
+function displayStudents() {
+  const listDiv = document.getElementById('studentList');
+  listDiv.innerHTML = students.map(s => `<div>${s}</div>`).join('');
+}
+
+// Tirage aléatoire pour former des groupes de 2
+
+function formGroups() {
+  let studentsCopy = [...students];
+  groups = [];
+  // Tant qu’on peut former un groupe complet de 4
+  while (studentsCopy.length >= 4) {
+    let group = [];
+    for (let i = 0; i < 4; i++) {
+      let idx = Math.floor(Math.random() * studentsCopy.length);
+      group.push(studentsCopy.splice(idx, 1)[0]);
+    }
+    groups.push(group);
+  }
+  // S’il reste des étudiants (moins de 4), créer un groupe avec eux
+  if (studentsCopy.length > 0) {
+    groups.push(studentsCopy);
+  }
+
+  const groupsDiv = document.getElementById('groupsList');
+  groupsDiv.innerHTML = groups.map((g, i) => `<div class="pair">Groupe ${i+1} : ${g.join(' , ')}</div>`).join('');
+
+  // Reset état pour la suite
+  currentTaskIndex = -1;
+  currentGroup = 0;
+  document.getElementById('task').innerHTML = '';
+  document.getElementById('validationResult').innerHTML = '';
+  document.getElementById('validateBtn').style.display = 'none';
+  document.getElementById('treeRoot').innerHTML = '';
+}
+
+// Tirage aléatoire d'une tâche pour le groupe courant
+function drawTask() {
+  if (groups.length === 0) return alert("Formez d'abord les groupes !");
+  if (currentGroup >= groups.length) return alert("Tous les groupes ont eu leur tâche.");
+
+  currentTaskIndex = Math.floor(Math.random() * tasks.length);
+  const taskDiv = document.getElementById('task');
+  taskDiv.innerHTML = `Tâche tirée pour le groupe ${currentGroup + 1} (${groups[currentGroup].join(' et ')}): <b>${tasks[currentTaskIndex]}</b>`;
+  document.getElementById('validateBtn').style.display = 'inline-block';
+  document.getElementById('validationResult').innerHTML = '';
+}
+
+// Validation simulée du code (succès ou échec aléatoire)
+function validateCode() {
+  const success = Math.random() > 0.3; // 70% de réussite simulée
+  const resultDiv = document.getElementById('validationResult');
+  if (success) {
+    resultDiv.innerHTML = `<span style="color:green;">Code Validé ! Le groupe ${currentGroup + 1} gagne cette confrontation.</span>`;
+    updateTree(currentGroup, true);
+  } else {
+    resultDiv.innerHTML = `<span style="color:red;">Code rejeté. Le groupe ${currentGroup + 1} perd cette confrontation.</span>`;
+    updateTree(currentGroup, false);
+  }
+  currentGroup++;
+  document.getElementById('validateBtn').style.display = 'none';
+  document.getElementById('task').innerHTML = '';
+}
+
+// Mise à jour simple d'un arbre de confrontation visuel (exemple simplifié)
+function updateTree(groupIndex, win) {
+  const treeDiv = document.getElementById('treeRoot');
+  const groupName = `Groupe ${groupIndex + 1} (${groups[groupIndex].join(' et ')})`;
+  const node = document.createElement('div');
+  node.className = "tree-node";
+  node.style.backgroundColor = win ? '#a8f0a2' : '#f0a2a2';
+  node.innerText = `${groupName}\n${win ? "Gagnant" : "Perdant"}`;
+  treeDiv.appendChild(node);
+}
+
+// Initialisation affichage étudiants
+displayStudents();
+
+</script>
+
+</body>
+</html>
+
