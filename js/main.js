@@ -6,12 +6,20 @@ import {
     codeurIndex, 
     taskValidation, 
     taskWinners, 
+    groupTotals,
+    taskResults,
     startTask, 
     validateCode, 
     checkBothValidated, 
-    displayRecap 
+    finalizeCurrentTask,
+    displayRecap,
+    finalizeExplanation
 } from './tasks.js';
 import { startTimer, stopTimer, resetTimer } from './timer.js';
+
+// Variables globales
+let timerInterval;
+let timerDuration = 5 * 60;
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,43 +28,65 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ajout des écouteurs d'événements
     document.getElementById('formGroupsBtn').addEventListener('click', handleFormGroups);
     document.getElementById('validateA').addEventListener('click', () => handleValidateCode('A'));
-    document.getElementById('validateB').addEventListener('click', () => handleValidateCode('B'));
     document.getElementById('finalBtn').addEventListener('click', finalizeExplanation);
 });
 
 function handleFormGroups() {
     const formedGroups = formGroups();
     if (formedGroups.length >= 2) {
-        startTask(formedGroups);
-        startTimer(() => {
-            checkBothValidated();
+        const allTasksComplete = startTask(formedGroups);
+        if (!allTasksComplete) {
+            // Valider automatiquement le code du Groupe B
             setTimeout(() => {
-                if (currentTaskIndex < tasks.length) {
-                    startTask(formedGroups);
-                    startTimer(() => checkBothValidated());
-                }
-            }, 2000);
-        });
+                validateCode("B");
+            }, 1000);
+            
+            startTimerFunction();
+        } else {
+            displayRecap();
+        }
     }
+}
+
+function startTimerFunction() {
+    let timeLeft = timerDuration;
+    clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+        let m = Math.floor(timeLeft / 60);
+        let s = timeLeft % 60;
+        document.getElementById('timerDisplay').innerText =
+            `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+        
+        // Changement de couleur quand le temps est presque écoulé
+        if(timeLeft <= 60) {
+            document.getElementById('timerDisplay').style.color = '#FF2A2A';
+            document.getElementById('timerDisplay').style.textShadow = '0 0 10px rgba(255, 42, 42, 1)';
+        }
+        
+        if(timeLeft <= 0){
+            clearInterval(timerInterval);
+            checkBothValidated();
+        }
+        timeLeft--;
+    }, 1000);
 }
 
 function handleValidateCode(team) {
     const isTaskComplete = validateCode(team);
     if (isTaskComplete) {
-        stopTimer();
+        clearInterval(timerInterval);
+        finalizeCurrentTask();
         setTimeout(() => {
             const allTasksComplete = startTask(groups);
             if (allTasksComplete) {
                 displayRecap();
             } else {
-                startTimer(() => checkBothValidated());
+                // Valider automatiquement le code du Groupe B pour la tâche suivante
+                setTimeout(() => {
+                    validateCode("B");
+                }, 1000);
+                startTimerFunction();
             }
         }, 2000);
     }
-}
-
-// Bouton final pour terminer explication
-function finalizeExplanation(){
-    document.getElementById('recap').innerHTML += "<br><div class='task-line' style='background:rgba(46,204,113,0.3)'>Explication terminée pour tous. Bravo !</div>";
-    document.getElementById('finalBtn').style.display = 'none';
 }
