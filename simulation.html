@@ -1,179 +1,84 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulation 2v2 - 3 tâches argc/argv</title>
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-h2 { margin-top: 30px; }
-.groups-list, .taskDisplay, .timer, .validation, .checker, .recap { margin-top: 10px; }
-button { padding: 6px 12px; cursor: pointer; margin: 5px; }
-.task-line { margin-bottom: 10px; white-space: pre-line; }
-textarea { width: 100%; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Battle - Jeu Pédagogique</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>CODE BATTLE</h1>
+            <p>Jeu pédagogique pour l'apprentissage de la programmation</p>
+        </header>
 
-<h1>Simulation 2v2 - 3 tâches argc/argv</h1>
+        <div class="panel">
+            <h2>Liste des étudiants</h2>
+            <div class="student-grid" id="studentList"></div>
+        </div>
 
-<h2>Liste des étudiants</h2>
-<div id="studentList"></div>
+        <div class="panel">
+            <h2>Formation des groupes</h2>
+            <button id="formGroupsBtn">Former les groupes</button>
+            <div class="groups-grid" id="groupsList"></div>
+        </div>
 
-<h2>Formation des groupes</h2>
-<button onclick="formGroups()">Former les groupes</button>
-<div class="groups-list" id="groupsList"></div>
+        <div class="panel">
+            <h2>Tâche courante</h2>
+            <div class="task-display" id="currentTask">Aucune tâche en cours</div>
+            
+            <div class="flex-container">
+                <div class="flex-item">
+                    <div class="group-card">
+                        <h3>Groupe A</h3>
+                        <p>Codeur: <span id="codeurA" class="coder-highlight">-</span></p>
+                    </div>
+                </div>
+                <div class="flex-item">
+                    <div class="group-card">
+                        <h3>Groupe B</h3>
+                        <p>Codeur: <span id="codeurB" class="coder-highlight">-</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="timer-container">
+                <h3>Temps restant</h3>
+                <div class="timer-display" id="timerDisplay">05:00</div>
+            </div>
+        </div>
 
-<h2>Tâche courante</h2>
-<div class="taskDisplay" id="currentTask">Aucune</div>
-<div>Codeur Groupe A : <span id="codeurA"></span></div>
-<div>Codeur Groupe B : <span id="codeurB"></span></div>
-<div class="timer">Temps restant : <span id="timerDisplay">05:00</span></div>
+        <div class="flex-container">
+            <div class="flex-item">
+                <div class="code-area">
+                    <div class="code-header">
+                        <h3>Groupe A - Code</h3>
+                    </div>
+                    <textarea id="codeInputA" rows="6" placeholder="Écrivez votre code ici..."></textarea>
+                    <button id="validateA" class="validate">Valider le code (Groupe A)</button>
+                </div>
+            </div>
+            <div class="flex-item">
+                <div class="code-area">
+                    <div class="code-header">
+                        <h3>Groupe B - Code</h3>
+                    </div>
+                    <textarea id="codeInputB" rows="6" placeholder="Écrivez votre code ici..."></textarea>
+                    <button id="validateB" class="validate">Valider le code (Groupe B)</button>
+                </div>
+            </div>
+        </div>
 
-<div class="checker" id="codeForm">
-<label>Entrer votre code (simulation) :</label><br>
-<textarea id="codeInputA" rows="4" placeholder="Groupe A"></textarea>
-<button onclick="validateCode('A')">Valider le code (Groupe A)</button><br><br>
+        <div class="validation-result" id="validationResult"></div>
 
-<textarea id="codeInputB" rows="4" placeholder="Groupe B"></textarea>
-<button onclick="validateCode('B')">Valider le code (Groupe B)</button>
-</div>
+        <div class="recap-container">
+            <h2>Récapitulatif & Explications</h2>
+            <div id="recap"></div>
+            <button id="finalBtn" style="display:none;">J'ai compris !</button>
+        </div>
+    </div>
 
-<div class="validation" id="validationResult"></div>
-
-<h2>Récap / Explication</h2>
-<div class="recap" id="recap"></div>
-<button id="finalBtn" style="display:none;" onclick="finalizeExplanation()">I understand it now</button>
-
-<script>
-// Liste des étudiants
-const students = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah", "Igor"];
-
-// Les 3 tâches du projet argc/argv
-const tasks = [
-    "0. Write a program that prints its name, followed by a new line.\nThe program name may change without recompilation.",
-    "1. Write a program that prints the number of arguments passed into it.",
-    "2. Write a program that prints all arguments it receives, one per line."
-];
-
-let groups = [];
-let currentTaskIndex = 0;
-let timerDuration = 5*60; // 5 minutes
-let timerInterval;
-let codeurIndex = {A:0, B:0};
-let taskValidation = {A:false, B:false};
-let taskWinners = []; // stocke qui a gagné chaque tâche
-
-// Affichage étudiants
-function displayStudents() {
-    document.getElementById('studentList').innerHTML = students.map(s=>`<div>${s}</div>`).join('');
-}
-
-// Former groupes
-function formGroups() {
-    let copy = [...students];
-    groups = [];
-    while(copy.length > 1){
-        const i1 = Math.floor(Math.random()*copy.length);
-        const p1 = copy.splice(i1,1)[0];
-        const i2 = Math.floor(Math.random()*copy.length);
-        const p2 = copy.splice(i2,1)[0];
-        groups.push([p1,p2]);
-    }
-    if(copy.length === 1){
-        if(groups.length>0){
-            groups[groups.length-1].push(copy[0]);
-        } else {
-            groups.push([copy[0]]);
-        }
-    }
-    document.getElementById('groupsList').innerHTML = groups.map((g,i)=>`<div>Groupe ${i+1}: ${g.join(' & ')}</div>`).join('');
-    startTask();
-}
-
-// Démarrer tâche courante
-function startTask(){
-    if(currentTaskIndex >= tasks.length){
-        document.getElementById('currentTask').innerText = "Toutes les tâches terminées !";
-        document.getElementById('timerDisplay').innerText = "00:00";
-        displayRecap();
-        return;
-    }
-
-    taskValidation = {A:false, B:false};
-    document.getElementById('validationResult').innerText = "";
-    document.getElementById('codeInputA').value="";
-    document.getElementById('codeInputB').value="";
-
-    document.getElementById('currentTask').innerText = tasks[currentTaskIndex];
-
-    // Rotation codeur
-    const codeurA = groups[0][codeurIndex.A % groups[0].length];
-    const codeurB = groups[1][codeurIndex.B % groups[1].length];
-    document.getElementById('codeurA').innerText = codeurA;
-    document.getElementById('codeurB').innerText = codeurB;
-    codeurIndex.A++;
-    codeurIndex.B++;
-
-    // Timer 5 minutes
-    let timeLeft = timerDuration;
-    clearInterval(timerInterval);
-    timerInterval = setInterval(()=>{
-        let m = Math.floor(timeLeft/60);
-        let s = timeLeft%60;
-        document.getElementById('timerDisplay').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        if(timeLeft<=0){
-            clearInterval(timerInterval);
-            checkBothValidated();
-        }
-        timeLeft--;
-    },1000);
-}
-
-// Validation du code pour un groupe
-function validateCode(team){
-    taskValidation[team]=true;
-
-    if(taskValidation.A && taskValidation.B){
-        const winner = Math.random()>0.5 ? 'A':'B';
-        taskWinners[currentTaskIndex] = winner;
-        document.getElementById('validationResult').innerHTML = `Tâche ${currentTaskIndex+1} terminée ! Gagnant : Groupe ${winner}`;
-        currentTaskIndex++;
-        startTask();
-    } else {
-        document.getElementById('validationResult').innerText = `Groupe ${team} a validé, attendre l'autre équipe...`;
-    }
-}
-
-// Vérifier les validations forcées si le timer expire
-function checkBothValidated(){
-    if(!taskValidation.A) taskValidation.A = true;
-    if(!taskValidation.B) taskValidation.B = true;
-    validateCode('A'); // déclenche validation globale
-}
-
-// Affichage récap et explication finale
-function displayRecap(){
-    const recapDiv = document.getElementById('recap');
-    recapDiv.innerHTML = "";
-    tasks.forEach((task,i)=>{
-        const line = document.createElement('div');
-        line.className = "task-line";
-        const winner = taskWinners[i];
-        line.innerText = `Task ${i}: ${winner ? "you got it already!" : "you still need to review"}\n${task}`;
-        recapDiv.appendChild(line);
-    });
-    document.getElementById('finalBtn').style.display = 'inline-block';
-}
-
-// Bouton final pour terminer explication
-function finalizeExplanation(){
-    document.getElementById('recap').innerHTML += "<br>Explication terminée pour tous. Bravo !";
-    document.getElementById('finalBtn').style.display = 'none';
-}
-
-// Initialisation
-displayStudents();
-</script>
+    <script type="module" src="js/main.js"></script>
 </body>
 </html>
