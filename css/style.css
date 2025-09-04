@@ -480,5 +480,28 @@ h1, .timer-display, .coder-highlight {
   }
 }
 
+.rules-button {
+    display: inline-block;
+    background: var(--primary-color, #AA0000); /* Couleur principale */
+    color: var(--button-text-color, white);
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin: 10px 0;
+}
+
+.rules-button:hover {
+    background: var(--primary-hover-color, #FF0000); /* Couleur au survol */
+    transform: translateY(-2px);
+}
+
+.rules-button:active {
+    transform: translateY(0);
+}
+
 /* Import des polices gaming */
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@400;500;600;700&display=swap');
