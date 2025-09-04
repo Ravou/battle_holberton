@@ -1,144 +1,149 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Simulation Moock - Groupes et Confrontations</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulation 2v2 - 3 tâches avec explication finale</title>
 <style>
   body { font-family: Arial, sans-serif; padding: 20px; }
   h2 { margin-top: 30px; }
-  .group, .task, .winner { margin-bottom: 20px; }
-  .groups-list, .tree { margin-top: 10px; }
-  .pair { margin-bottom: 10px; }
-  button { cursor: pointer; padding: 6px 12px; margin-top: 10px; }
-  .tree-node { border: 1px solid #333; padding: 8px; margin: 5px; display: inline-block; min-width: 140px; text-align: center; background: #eee; border-radius: 5px; white-space: pre-line; }
-  .tree-row { margin-top: 15px; }
+  .groups-list, .taskDisplay, .timer, .validation, .explanation, .checker, .recap { margin-top: 10px; }
+  button { padding: 6px 12px; cursor: pointer; margin: 5px; }
+  .score { margin-top: 15px; font-weight: bold; }
+  .task-line { margin-bottom: 10px; }
 </style>
 </head>
 <body>
-
-<h1>Simulation Moock : Groupes & Confrontations</h1>
-
-<h2>1. Liste des étudiants</h2>
+<h1>Simulation 2v2 - 3 tâches avec explication finale</h1>
+<h2>Liste des étudiants</h2>
 <div id="studentList"></div>
-
-<h2>2. Formation automatique de groupes de 2</h2>
+<h2>Formation des groupes</h2>
 <button onclick="formGroups()">Former les groupes</button>
 <div class="groups-list" id="groupsList"></div>
-
-<h2>5. Confrontations</h2>
-<div id="confrontationsList"></div>
-
-<h2>3. Tirage aléatoire d’une tâche et validation</h2>
-<button onclick="drawTask()">Tirer une tâche pour le groupe courant</button>
-<div class="task" id="task"></div>
-<button onclick="validateCode()" style="display:none;" id="validateBtn">Valider le code</button>
-<div class="validationResult" id="validationResult"></div>
-
-<h2>4. Arbre de confrontation simplifié</h2>
-<div class="tree" id="treeRoot"></div>
-
+<h2>Tâche courante</h2>
+<div class="taskDisplay" id="currentTask">Aucune</div>
+<div>Codeur Groupe A : <span id="codeurA"></span></div>
+<div>Codeur Groupe B : <span id="codeurB"></span></div>
+<div class="timer">Temps restant : <span id="timerDisplay">05:00</span></div>
+<div class="checker" id="codeForm">
+  <label>Entrer votre code (simulation) :</label><br>
+  <textarea id="codeInputA" rows="4" cols="50" placeholder="Groupe A"></textarea>
+  <button onclick="validateCode('A')">Valider le code (Groupe A)</button><br><br>
+  <textarea id="codeInputB" rows="4" cols="50" placeholder="Groupe B"></textarea>
+  <button onclick="validateCode('B')">Valider le code (Groupe B)</button>
+</div>
+<div class="validation" id="validationResult"></div>
+<h2>Récap / Explication</h2>
+<div class="recap" id="recap"></div>
+<button id="finalBtn" style="display:none;" onclick="finalizeExplanation()">I understand it now</button>
 <script>
-// Liste fictive d'étudiants
-const students = [
-  "Alice", "Bob", "Charlie", "Diana",
-  "Ethan", "Fiona", "George", "Hannah"
-];
-
-// Liste des tâches spécifiques au projet sur argc et argv en C
+// Liste des étudiants
+const students = ["Alice", "Bob", "Charlie", "Diana", "Ethan", "Fiona", "George", "Hannah", "Igor"];
 const tasks = [
-  "0. Write a program that prints its name, followed by a new line.\nThe program name may change without recompilation.",
-  "1. Write a program that prints the number of arguments passed into it.",
-  "2. Write a program that prints all arguments it receives, one per line.",
-  "3. Write a program that multiplies two numbers passed as arguments and prints the result.",
-  "4. Write a program that adds positive numbers passed as arguments and handles errors for non-digit symbols."
+  "0. Print program name",
+  "1. Print number of arguments",
+  "2. Print all arguments line by line"
 ];
-
 let groups = [];
-let currentTaskIndex = -1;
-let currentGroup = 0;
-
-// Afficher la liste des étudiants
+let currentTaskIndex = 0;
+let timerDuration = 5*60; // 5 minutes
+let timerInterval;
+let codeurIndex = {A:0, B:0};
+let taskValidation = {A:false, B:false};
+let scores = {A:0, B:0};
+let finalClicked = {A:false, B:false};
+// Affichage étudiants
 function displayStudents() {
-  const listDiv = document.getElementById('studentList');
-  listDiv.innerHTML = students.map(s => `<div>${s}</div>`).join('');
+  document.getElementById('studentList').innerHTML = students.map(s=>`<div>${s}</div>`).join('');
 }
-
-// Tirage aléatoire pour former des groupes de 2
-
+// Former groupes
 function formGroups() {
-  let studentsCopy = [...students];
+  let copy = [...students];
   groups = [];
-  // Tant qu’on peut former un groupe complet de 4
-  while (studentsCopy.length >= 4) {
-    let group = [];
-    for (let i = 0; i < 4; i++) {
-      let idx = Math.floor(Math.random() * studentsCopy.length);
-      group.push(studentsCopy.splice(idx, 1)[0]);
+  while(copy.length > 1){
+    const i1 = Math.floor(Math.random()*copy.length);
+    const p1 = copy.splice(i1,1)[0];
+    const i2 = Math.floor(Math.random()*copy.length);
+    const p2 = copy.splice(i2,1)[0];
+    groups.push([p1,p2]);
+  }
+  if(copy.length === 1){
+    if(groups.length>0){
+      groups[groups.length-1].push(copy[0]);
+    } else {
+      groups.push([copy[0]]);
     }
-    groups.push(group);
   }
-  // S’il reste des étudiants (moins de 4), créer un groupe avec eux
-  if (studentsCopy.length > 0) {
-    groups.push(studentsCopy);
+  document.getElementById('groupsList').innerHTML = groups.map((g,i)=>`<div>Groupe ${i+1}: ${g.join(' & ')}</div>`).join('');
+  startTask();
+}
+// Démarrer tâche courante
+function startTask(){
+  if(currentTaskIndex >= tasks.length){
+    document.getElementById('currentTask').innerText = "Toutes les tâches terminées !";
+    document.getElementById('timerDisplay').innerText = "00:00";
+    displayRecap();
+    return;
   }
-
-  const groupsDiv = document.getElementById('groupsList');
-  groupsDiv.innerHTML = groups.map((g, i) => `<div class="pair">Groupe ${i+1} : ${g.join(' , ')}</div>`).join('');
-
-  // Reset état pour la suite
-  currentTaskIndex = -1;
-  currentGroup = 0;
-  document.getElementById('task').innerHTML = '';
-  document.getElementById('validationResult').innerHTML = '';
-  document.getElementById('validateBtn').style.display = 'none';
-  document.getElementById('treeRoot').innerHTML = '';
+  taskValidation = {A:false, B:false};
+  document.getElementById('validationResult').innerText = "";
+  document.getElementById('codeInputA').value="";
+  document.getElementById('codeInputB').value="";
+  document.getElementById('currentTask').innerText = tasks[currentTaskIndex];
+  // Rotation codeur
+  const codeurA = groups[0][codeurIndex.A % groups[0].length];
+  const codeurB = groups[1][codeurIndex.B % groups[1].length];
+  document.getElementById('codeurA').innerText = codeurA;
+  document.getElementById('codeurB').innerText = codeurB;
+  codeurIndex.A++;
+  codeurIndex.B++;
+  // Timer 5 minutes
+  let timeLeft = timerDuration;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(()=>{
+    let m = Math.floor(timeLeft/60);
+    let s = timeLeft%60;
+    document.getElementById('timerDisplay').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+    if(timeLeft<=0){
+      clearInterval(timerInterval);
+      checkBothValidated();
+    }
+    timeLeft--;
+  },1000);
 }
-
-// Tirage aléatoire d'une tâche pour le groupe courant
-function drawTask() {
-  if (groups.length === 0) return alert("Formez d'abord les groupes !");
-  if (currentGroup >= groups.length) return alert("Tous les groupes ont eu leur tâche.");
-
-  currentTaskIndex = Math.floor(Math.random() * tasks.length);
-  const taskDiv = document.getElementById('task');
-  taskDiv.innerHTML = `Tâche tirée pour le groupe ${currentGroup + 1} (${groups[currentGroup].join(' et ')}): <b>${tasks[currentTaskIndex]}</b>`;
-  document.getElementById('validateBtn').style.display = 'inline-block';
-  document.getElementById('validationResult').innerHTML = '';
-}
-
-// Validation simulée du code (succès ou échec aléatoire)
-function validateCode() {
-  const success = Math.random() > 0.3; // 70% de réussite simulée
-  const resultDiv = document.getElementById('validationResult');
-  if (success) {
-    resultDiv.innerHTML = `<span style="color:green;">Code Validé ! Le groupe ${currentGroup + 1} gagne cette confrontation.</span>`;
-    updateTree(currentGroup, true);
+// Validation du code pour un groupe
+function validateCode(team){
+  taskValidation[team]=true;
+  if(taskValidation.A && taskValidation.B){
+    const winner = Math.random()>0.5 ? 'A':'B';
+    scores[winner]++;
+    document.getElementById('validationResult').innerHTML = `Tâche ${currentTaskIndex+1} terminée ! Gagnant : Groupe ${winner}`;
+    currentTaskIndex++;
+    startTask();
   } else {
-    resultDiv.innerHTML = `<span style="color:red;">Code rejeté. Le groupe ${currentGroup + 1} perd cette confrontation.</span>`;
-    updateTree(currentGroup, false);
+    document.getElementById('validationResult').innerText = `Groupe ${team} a validé, attendre l'autre équipe...`;
   }
-  currentGroup++;
-  document.getElementById('validateBtn').style.display = 'none';
-  document.getElementById('task').innerHTML = '';
 }
-
-// Mise à jour simple d'un arbre de confrontation visuel (exemple simplifié)
-function updateTree(groupIndex, win) {
-  const treeDiv = document.getElementById('treeRoot');
-  const groupName = `Groupe ${groupIndex + 1} (${groups[groupIndex].join(' et ')})`;
-  const node = document.createElement('div');
-  node.className = "tree-node";
-  node.style.backgroundColor = win ? '#a8f0a2' : '#f0a2a2';
-  node.innerText = `${groupName}\n${win ? "Gagnant" : "Perdant"}`;
-  treeDiv.appendChild(node);
+// Affichage récap et explication finale
+function displayRecap(){
+  const recapDiv = document.getElementById('recap');
+  recapDiv.innerHTML = "";
+  tasks.forEach((task,i)=>{
+    const line = document.createElement('div');
+    line.className = "task-line";
+    line.innerText = `Task ${i+1}: you still need to review`;
+    recapDiv.appendChild(line);
+  });
+  document.getElementById('finalBtn').style.display = 'inline-block';
 }
-
-// Initialisation affichage étudiants
+// Bouton final pour terminer explication
+function finalizeExplanation(){
+  // On peut simuler que les deux groupes cliquent ensemble
+  document.getElementById('recap').innerHTML += "<br>Explication terminée pour tous. Bravo !";
+  document.getElementById('finalBtn').style.display = 'none';
+}
+// Initialisation
 displayStudents();
-
 </script>
-
 </body>
 </html>
-
