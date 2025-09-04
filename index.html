@@ -3,40 +3,44 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulation 2v2 - argc/argv</title>
+  <title>PLD Battle</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<h1>Simulation 2v2 - argc/argv</h1>
+<h1>PLD BATTLE</h1>
 
-<h2>Liste des étudiants</h2>
+<h2>Student List </h2>
 <div id="studentList"></div>
 
-<h2>Formation des groupes</h2>
-<button onclick="formGroups()">Former les groupes</button>
+<h2>Team Up!</h2>
+<button onclick="formGroups()">Make Team</button>
 <div class="groups-list" id="groupsList"></div>
 
-<h2>Tâche courante</h2>
-<div class="taskDisplay" id="currentTask">Aucune</div>
-<div>Codeur Groupe A : <span id="codeurA"></span></div>
-<div>Codeur Groupe B : <span id="codeurB"></span></div>
-<div class="timer">Temps restant : <span id="timerDisplay">05:00</span></div>
+<h2>Disclaimer</h2>
+<div class="disclaimer">
+  👉 ⚠️ Warning: Leaving or minimizing the window will cost you points!
+</div>
+<h2>Current Task</h2>
+<div class="taskDisplay" id="currentTask">None</div>
+<div>Team A Coder: <span id="codeurA"></span></div>
+<div>Team B Coder: <span id="codeurB"></span></div>
+<div class="timer">Time Left: <span id="timerDisplay">05:00</span></div>
 
 <div class="checker" id="codeForm">
-  <label>Entrer votre code (simulation) :</label><br>
-  <textarea id="codeInputA" rows="12" placeholder="Groupe A"></textarea>
-  <button onclick="validateCode('A')">Valider le code (Groupe A)</button><br><br>
+  <label>Enter your code (simulation):</label><br>
+  <textarea id="codeInputA" rows="12" placeholder="Team A"></textarea>
+  <button onclick="validateCode('A')">Submit Code (Team A)</button><br><br>
 
-  <textarea id="codeInputB" rows="12" placeholder="Groupe B"></textarea>
-  <button onclick="validateCode('B')">Valider le code (Groupe B)</button>
+  <textarea id="codeInputB" rows="12" placeholder="Team B"></textarea>
+  <button onclick="validateCode('B')">Submit Code (Team B)</button>
 </div>
 
 <div class="validation" id="validationResult"></div>
 
-<h2>Récap / Explication</h2>
+<h2>Recap / Explanation</h2>
 <div class="recap" id="recap"></div>
-<button id="finalBtn" style="display:none;" onclick="finalizeExplanation()">I understand it now</button>
+<button id="finalBtn" style="display:none;" onclick="finalizeExplanation()">Got it!</button>
 
 <script src="tasks.js"></script>
 <script src="checker.js"></script>

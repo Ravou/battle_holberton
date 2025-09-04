@@ -3,15 +3,17 @@
 // -----------------------------
 let groups = [];
 let currentTaskIndex = 0;
-let timerDuration = 5 * 60;
+let timerDuration = 5 * 60; // 5 min
 let timerInterval;
 let codeurIndex = { A: 0, B: 0 };
-let taskValidation = { A: false, B: false };
+let taskValidation = { A: 0, B: 0 }; // points validés par tâche
 let taskWinners = [];
-let groupTotals = { A: 0, B: 0 };
+let groupTotals = { A: 0, B: 0 }; // total score du groupe
 let taskResults = [];
+let hasLostFocus = false; // pour gérer la pénalité correctement
+let pendingPenalty = { A: 0, B: 0 }; // pénalités en attente pour la tâche
 
-// Réponses fixes pour B, dans l'ordre des tâches
+// Réponses fixes pour B
 const fixedBResponses = [
 `#include <stdio.h>
 int main() {
@@ -73,10 +75,10 @@ function startTask() {
     return;
   }
 
-  taskValidation = {A:false, B:false};
+  taskValidation = {A:0, B:0};
   document.getElementById('validationResult').innerText = "";
   document.getElementById('codeInputA').value = "";
-  document.getElementById('codeInputB').value = ""; // le textarea B reste visible
+  document.getElementById('codeInputB').value = "";
 
   document.getElementById('currentTask').innerText = tasks[currentTaskIndex];
 
@@ -121,7 +123,6 @@ function evaluateCode(code) {
 function validateCode(team) {
     let code;
     if (team === "B") {
-        // Réponse fixe pour le groupe B
         code = fixedBResponses[currentTaskIndex];
         document.getElementById('codeInputB').value = code;
     } else {
@@ -130,11 +131,14 @@ function validateCode(team) {
 
     const evalRes = evaluateCode(code);
 
-    // Sauvegarde des résultats
-    if (!taskResults[currentTaskIndex]) taskResults[currentTaskIndex] = { A: null, B: null, winner: null };
+    if (!taskResults[currentTaskIndex]) 
+        taskResults[currentTaskIndex] = { A: null, B: null, winner: null, penalties: {A:0, B:0} };
+
     taskResults[currentTaskIndex][team] = evalRes;
 
-    // Affichage détaillé des résultats
+    // Stocker les points validés
+    taskValidation[team] = evalRes.points;
+
     let output = `<strong>Résultats Groupe ${team} :</strong><br>`;
     for (const key in evalRes.breakdown) {
         output += `${key} : ${evalRes.breakdown[key] ? "✅" : "❌"}<br>`;
@@ -142,48 +146,52 @@ function validateCode(team) {
     output += `Points : ${evalRes.points}/${evalRes.checksCount}<br><br>`;
     document.getElementById('validationResult').innerHTML += output;
 
-    // Enregistrement des points
-    taskValidation[team] = evalRes.points;
-
-    // Validation automatique de B après A si ce n’est pas déjà fait
-    if (team === "A" && !taskValidation.B) {
+    if (team === "A" && taskValidation.B === 0) {
         validateCode("B");
-        return; // Ne pas continuer pour éviter double finalize
+        return;
     }
 
-    // Si les deux groupes ont validé → finalisation
-    if (taskValidation.A !== false && taskValidation.B !== false) {
+    if (taskValidation.A !== null && taskValidation.B !== null) {
         finalizeCurrentTask();
     } else {
         document.getElementById('validationResult').innerHTML +=
             `👉 Groupe ${team} a validé, attendre l'autre équipe...<br><br>`;
     }
 }
+
 // -----------------------------
 // Finalisation de la tâche courante
 // -----------------------------
 function finalizeCurrentTask() {
     clearInterval(timerInterval);
 
-    // Détermination du gagnant
     let winner;
     if (taskValidation.A > taskValidation.B) winner = "A";
     else if (taskValidation.B > taskValidation.A) winner = "B";
     else winner = "Égalité";
 
-    // Mise à jour des totaux
-    groupTotals.A += taskValidation.A;
-    groupTotals.B += taskValidation.B;
+    const pointsA = Number(taskValidation.A) || 0;
+    const pointsB = Number(taskValidation.B) || 0;
 
-    // Enregistrement du gagnant pour cette tâche
-    taskWinners[currentTaskIndex] = winner;
+    // Appliquer pénalités et mettre à jour le score total
+    const finalA = Math.max(0, pointsA - pendingPenalty.A);
+    const finalB = Math.max(0, pointsB - pendingPenalty.B);
+
+    groupTotals.A += finalA;
+    groupTotals.B += finalB;
+
+    // Stocker les pénalités et points finaux pour le récap
     taskResults[currentTaskIndex].winner = winner;
+    taskResults[currentTaskIndex].penalties = { A: pendingPenalty.A, B: pendingPenalty.B };
+    taskResults[currentTaskIndex].finalPoints = { A: finalA, B: finalB };
 
-    // Affichage avant incrément de l'index
+    // Réinitialiser les pénalités pour la prochaine tâche
+    pendingPenalty.A = 0;
+    pendingPenalty.B = 0;
+
     document.getElementById('validationResult').innerHTML +=
         `🏆 Tâche ${currentTaskIndex + 1} terminée ! Gagnant : Groupe ${winner}<br>`;
 
-    // Passer à la tâche suivante après un petit délai
     setTimeout(() => {
         currentTaskIndex++;
         startTask();
@@ -194,10 +202,50 @@ function finalizeCurrentTask() {
 // Timer expiré → validation forcée
 // -----------------------------
 function checkBothValidated() {
-  if(taskValidation.A === false) validateCode("A");
-  if(taskValidation.B === false) validateCode("B");
-  if(taskValidation.A !== false && taskValidation.B !== false) finalizeCurrentTask();
+  if(taskValidation.A === 0) validateCode("A");
+  if(taskValidation.B === 0) validateCode("B");
+  if(taskValidation.A !== null && taskValidation.B !== null) finalizeCurrentTask();
 }
+
+// -----------------------------
+// Pénalité si Groupe A quitte la fenêtre
+// -----------------------------
+function applyPenalty(team) {
+    pendingPenalty[team]++;
+    showPenaltyAlert(`⚠️ Groupe ${team} a reçu une pénalité !`);
+}
+
+// -----------------------------
+// Alertes de pénalité
+// -----------------------------
+function showPenaltyAlert(message) {
+    let alertDiv = document.getElementById("penaltyAlert");
+    if (!alertDiv) {
+        alertDiv = document.createElement("div");
+        alertDiv.id = "penaltyAlert";
+        alertDiv.className = "penalty-alert";
+        document.body.appendChild(alertDiv);
+    }
+    alertDiv.innerText = message;
+    alertDiv.style.display = "block";
+    setTimeout(() => {
+        alertDiv.style.display = "none";
+    }, 3000);
+}
+
+// -----------------------------
+// Détection perte de focus / changement d’onglet
+// -----------------------------
+window.addEventListener("load", () => {
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden && !hasLostFocus) {
+            applyPenalty("A");
+            hasLostFocus = true;
+        } else if (!document.hidden) {
+            hasLostFocus = false;
+        }
+    });
+});
 
 // -----------------------------
 // Affichage récapitulatif final
@@ -216,13 +264,19 @@ function displayRecap() {
   taskResults.forEach((res,i)=>{
     if(!res) return;
     const a = res.A, b = res.B;
+    const penalties = res.penalties || {A:0,B:0};
+    const finalPts = res.finalPoints || {A:0,B:0};
     const title = tasks[i].split("\n")[0];
     const line = document.createElement('div');
     line.className = "task-line";
     line.innerHTML = `
       <strong>Tâche ${i} — ${title}</strong><br>
-      Groupe A : ${a ? (a.passed ? "✅" : "❌") : "—"} ${a ? `${a.points}/${a.checksCount} pts` : ""}<br>
-      Groupe B : ${b ? (b.passed ? "✅" : "❌") : "—"} ${b ? `${b.points}/${b.checksCount} pts` : ""}<br>
+      Groupe A : ${a ? (a.passed ? "✅" : "❌") : "—"} ${a ? `${a.points}/${a.checksCount} points` : ""} 
+      ${penalties.A>0?`(-${penalties.A} pénalité)`:""}<br>
+      Points : ${finalPts.A}<br>
+      Groupe B : ${b ? (b.passed ? "✅" : "❌") : "—"} ${b ? `${b.points}/${b.checksCount} points` : ""} 
+      ${penalties.B>0?`(-${penalties.B} pénalité)`:""}<br>
+      Points : ${finalPts.B}<br>
       Gagnant : ${res.winner}
     `;
     recapDiv.appendChild(line);

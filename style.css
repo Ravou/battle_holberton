@@ -20,3 +20,28 @@ button {
 textarea {
   width: 100%;
 }
+/* -----------------------------
+   Bandeau de pénalité
+----------------------------- */
+#penaltyAlert {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #ff4c4c; /* rouge vif */
+    color: white;
+    font-weight: bold;
+    padding: 15px 25px;
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    z-index: 9999;
+    display: none;
+    text-align: center;
+    animation: slideDown 0.5s ease-out;
+}
+
+/* Animation bandeau */
+@keyframes slideDown {
+    0% { transform: translate(-50%, -100%); opacity: 0; }
+    100% { transform: translate(-50%, 0); opacity: 1; }
+}
