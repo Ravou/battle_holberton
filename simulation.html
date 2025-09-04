@@ -1,44 +1,48 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Simulation 2v2 - 3 tâches argc/argv</title>
-<style>
-body { font-family: Arial, sans-serif; padding: 20px; }
-h2 { margin-top: 30px; }
-.groups-list, .taskDisplay, .timer, .validation, .checker, .recap { margin-top: 10px; }
-button { padding: 6px 12px; cursor: pointer; margin: 5px; }
-.task-line { margin-bottom: 10px; white-space: pre-line; }
-textarea { width: 100%; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Battle - Jeu Pédagogique</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <div class="container">
+        <header>
+            <h1>CODE BATTLE</h1>
+            <p>Jeu pédagogique pour l'apprentissage de la programmation</p>
+        </header>
 
 <h1>Simulation 2v2 - 3 tâches argc/argv</h1>
-<a href="rules.html" class="back-btn">📖 Voir les règles du PLD Battle</a>
 
 <h2>Liste des étudiants</h2>
 <div id="studentList"></div>
 
-<h2>Formation des groupes</h2>
-<button onclick="formGroups()">Former les groupes</button>
-<div class="groups-list" id="groupsList"></div>
+        <div class="panel">
+            <h2>Formation des groupes</h2>
+            <button id="formGroupsBtn">Former les groupes</button>
+            <div class="groups-grid" id="groupsList"></div>
+        </div>
 
-<h2>Tâche courante</h2>
-<div class="taskDisplay" id="currentTask">Aucune</div>
-<div>Codeur Groupe A : <span id="codeurA"></span></div>
-<div>Codeur Groupe B : <span id="codeurB"></span></div>
-<div class="timer">Temps restant : <span id="timerDisplay">05:00</span></div>
-
-<div class="checker" id="codeForm">
-<label>Entrer votre code (simulation) :</label><br>
-<textarea id="codeInputA" rows="4" placeholder="Groupe A"></textarea>
-<button onclick="validateCode('A')">Valider le code (Groupe A)</button><br><br>
-
-<textarea id="codeInputB" rows="4" placeholder="Groupe B"></textarea>
-<button onclick="validateCode('B')">Valider le code (Groupe B)</button>
-</div>
+        <div class="panel">
+            <h2>Tâche courante</h2>
+            <div class="task-display" id="currentTask">Aucune tâche en cours</div>
+            
+            <div class="flex-container">
+                <div class="flex-item">
+                    <div class="group-card">
+                        <h3>Groupe A</h3>
+                        <p>Codeur: <span id="codeurA" class="coder-highlight">-</span></p>
+                    </div>
+                </div>
+                <!-- Supprimé le Groupe B de l'affichage -->
+            </div>
+            
+            <div class="timer-container">
+                <h3>Temps restant</h3>
+                <div class="timer-display" id="timerDisplay">05:00</div>
+            </div>
+        </div>
 
 <div class="validation" id="validationResult"></div>
 
@@ -64,59 +68,6 @@ let timerInterval;
 let codeurIndex = {A:0, B:0};
 let taskValidation = {A:false, B:false};
 let taskWinners = []; // stocke qui a gagné chaque tâche
-
-const taskCheckers = [
-    // Task 0
-    (code) => ({
-        "Correct output - case: ./0-whatsmyname_0": code.includes("printf") && code.includes("argv[0]"),
-        "Correct output - case: ./anothername": code.includes("printf") && code.includes("argv[0]"),
-        "Correct output - case: ./AreYouSure?": code.includes("printf") && code.includes("argv[0]"),
-        "Return SUCCESS": code.includes("return 0"),
-        "Betty coding style": !code.includes("\t")
-    }),
-    // Task 1
-    (code) => ({
-        "Correct output - case: ./1-args": code.includes("argc - 1") || code.includes("printf"),
-        "Return SUCCESS": code.includes("return 0"),
-        "Betty coding style": !code.includes("\t")
-    }),
-    // Task 2
-    (code) => ({
-        "Correct output - case: ./task": code.includes("for") && code.includes("printf"),
-        "Return SUCCESS": code.includes("return 0"),
-        "Betty coding style": !code.includes("\t")
-    })
-];
-
-// --- Nouvelle fonction validateCode avec simulation ---
-function validateCode(team){
-    const code = document.getElementById(`codeInput${team}`).value;
-    const checker = taskCheckers[currentTaskIndex];
-    const results = checker(code);
-
-    // Génération du texte de validation simulé
-    let output = `Résultats pour Groupe ${team} :\n`;
-    let points = 0;
-    for (const key in results){
-        output += `${key} : ${results[key] ? "✔️" : "❌"}\n`;
-        if (results[key]) points += (key.includes("AreYouSure?") ? 2 : 1);
-    }
-    output += `Points : ${points}\n`;
-    document.getElementById('validationResult').innerText = output;
-
-    taskValidation[team] = true;
-
-    // Vérification si les deux groupes ont validé
-    if(taskValidation.A && taskValidation.B){
-        const winner = Math.random() > 0.5 ? 'A' : 'B';
-        taskWinners[currentTaskIndex] = winner;
-        document.getElementById('validationResult').innerText += `\nTâche ${currentTaskIndex+1} terminée ! Gagnant : Groupe ${winner}`;
-        currentTaskIndex++;
-        startTask();
-    } else {
-        document.getElementById('validationResult').innerText += `\nGroupe ${team} a validé, attendre l'autre équipe...`;
-    }
-}
 
 // Affichage étudiants
 function displayStudents() {
